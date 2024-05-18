@@ -392,6 +392,7 @@ void main() {
 	//Leer textura
 	int width, height, nrChannels;
 	unsigned char* textureInfo = stbi_load("Assets/Textures/troll.png", &width, &height, &nrChannels, 0);
+	unsigned char* textureInfoRock = stbi_load("Assets/Textures/rock.png", &width, &height, &nrChannels, 0);
 
 	//Inicializamos GLEW y controlamos errores
 	if (glewInit() == GLEW_OK) {
@@ -445,7 +446,7 @@ void main() {
 		//Definir la matriz de traslacion, rotacion y escalado
 		glm::mat4 translationMatrix = glm::translate(glm::mat4(1.f), glm::vec3(0.f));
 		glm::mat4 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.f, 1.f, 0.f));
-		glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.f), glm::vec3(1.f));
+		glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.f), glm::vec3(0.5f));
 
 		// Definir la matriz de vista
 		glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 1.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.f), glm::vec3(0.0f, 1.0f, 0.0f));
@@ -466,6 +467,71 @@ void main() {
 		glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(view));
 		glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 
+		//MODELO 2
+
+		//Cargo Modelo
+		models.push_back(LoadOBJModel("Assets/Models/rock.obj"));
+
+		//Definimos canal de textura activo
+		glActiveTexture(GL_TEXTURE0);
+
+		//Generar textura
+		GLuint textureID2;
+		glGenTextures(1, &textureID2);
+
+		//Vinculamos texture
+		glBindTexture(GL_TEXTURE_2D, textureID2);
+
+		//Configurar textura
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		//Cargar imagen a la textura
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, textureInfo);
+
+		//Generar mipmap
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		//Liberar memoria de la imagen cargada
+		stbi_image_free(textureInfo);
+
+		//Definimos color para limpiar el buffer de color
+		glClearColor(0.f, 0.f, 0.f, 1.f);
+
+		//Definimos modo de dibujo para cada cara
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+
+		//Indicar a la tarjeta GPU que programa debe usar
+		glUseProgram(compiledPrograms[0]);
+
+		//Definir la matriz de traslacion, rotacion y escalado
+		glm::mat4 translationMatrix2 = glm::translate(glm::mat4(1.f), glm::vec3(1.f));
+		glm::mat4 rotationMatrix2 = glm::rotate(glm::mat4(1.0f), glm::radians(0.0f), glm::vec3(0.f, 1.f, 0.f));
+		glm::mat4 scaleMatrix2 = glm::scale(glm::mat4(1.f), glm::vec3(0.5f));
+
+		// Definir la matriz de vista
+		glm::mat4 view2 = glm::lookAt(glm::vec3(0.0f, 1.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.f), glm::vec3(0.0f, 1.0f, 0.0f));
+
+		// Definir la matriz proyeccion
+		glm::mat4 projection2 = glm::perspective(glm::radians(45.0f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
+
+		//Asignar valores iniciales al programa
+		glUniform2f(glGetUniformLocation(compiledPrograms[0], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
+
+		//Asignar valor variable de textura a usar.
+		glUniform1i(glGetUniformLocation(compiledPrograms[0], "textureSampler"), 0);
+
+		// Pasar las matrices
+		glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix2));
+		glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix2));
+		glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix2));
+		glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(view2));
+		glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(projection2));
+
+		
+
 		//Generamos el game loop
 		while (!glfwWindowShouldClose(window)) {
 
@@ -477,6 +543,8 @@ void main() {
 
 			//Renderizo objeto 0
 			models[0].Render();
+			models[1].Render();
+
 
 			//Cambiamos buffers
 			glFlush();
