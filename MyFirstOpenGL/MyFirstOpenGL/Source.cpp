@@ -27,6 +27,21 @@ struct GameObject
 
 };
 
+struct Camera 
+{
+	glm::vec3 position = glm::vec3(0.f,2.f,5.f);
+	glm::vec3 direction = position + glm::vec3(0.f,0.f,-1.f);
+	glm::vec3 localVectorUp = glm::vec3(0.f,1.f,0.f);
+	glm::vec3 initialPosition = glm::vec3(0.f, 2.f, 5.f);
+	float dollyZoomSpeed = 0.01f;
+	float fovSpeed = 0.1f;
+	float initialFov = 45.f;
+	float fFov = 45.f;
+	float fNear = 0.1f;
+	float fFar = 10.f;
+	float aspectRatio;
+};
+
 struct ShaderProgram {
 	GLuint vertexShader = 0;
 	GLuint geometryShader = 0;
@@ -36,6 +51,11 @@ struct ShaderProgram {
 std::vector<GLuint> compiledPrograms;
 std::vector<Model> models;
 GameObject cube;
+bool isometric = true;
+bool generalPlane = false;
+bool detailPlane = false;
+bool dollyZoom = false;
+bool first = true;
 
 void Resize_Window(GLFWwindow* window, int iFrameBufferWidth, int iFrameBufferHeight) {
 
@@ -59,6 +79,61 @@ glm::mat4 GenerateRotationMatrix(glm::vec3 axis, float fDegrees)
 glm::mat4 GenerateScaleMatrix(glm::vec3 scaleAxis)
 {
 	return glm::scale(glm::mat4(1.0f), scaleAxis);
+
+}
+
+void keyEvents(GLFWwindow* window, int key, int scancode, int action, int mods)
+{
+
+
+	if ((key == GLFW_KEY_1 && action == GLFW_PRESS))
+	{
+
+		if (generalPlane == true) 
+		{
+			generalPlane = false;
+			first = true;
+			isometric = true;
+			
+		}
+		else 
+		{
+			isometric = false;
+			detailPlane = false;
+			generalPlane = true;
+		}
+
+	}
+
+	if ((key == GLFW_KEY_2 && action == GLFW_PRESS))
+	{
+		if (detailPlane == true)
+		{
+			detailPlane = false;
+			first = true;
+			isometric = true;
+		}
+		else
+		{
+			detailPlane = true;
+			isometric = false;
+			generalPlane = false;
+		}
+
+
+	}
+
+	if ((key == GLFW_KEY_3 && action == GLFW_PRESS))
+	{
+		
+		isometric = false;
+		detailPlane = false;
+		generalPlane = false;
+		first = true;
+		dollyZoom = true;
+
+	}
+
 
 }
 
@@ -431,7 +506,7 @@ void main() {
 	if (glewInit() == GLEW_OK) {
 
 		
-
+		Camera camara;
 
 		//Compilar shaders
 		ShaderProgram myFirstProgram;
@@ -637,6 +712,56 @@ void main() {
 
 			//Pulleamos los eventos (botones, teclas, mouse...)
 			glfwPollEvents();
+			glfwSetKeyCallback(window, keyEvents);
+			
+			 if (detailPlane) 
+			{
+				 camara.position = glm::vec3(0.f, 1.5f, 0.f);
+				 camara.direction = camara.position + glm::vec3(-1.5f, 0.65f, 0.f);
+				 camara.fFov = 5.f;
+			}
+			 else if (dollyZoom) 
+			 {
+				 
+				 if (first) 
+				 {
+					 camara.position = glm::vec3(0.f, 2.f, 5.f);
+					 camara.direction = camara.position + glm::vec3(0.f, 0.f, -1.f);
+					 camara.fFov = 45.f;
+					 first = false;
+				 }
+				 else 
+				 {
+					 camara.initialPosition = glm::vec3(0.f, 2.f, 8.f);
+					 camara.position.z -= camara.dollyZoomSpeed;
+					 camara.fFov += camara.fovSpeed;
+					 if (camara.position.z < camara.initialPosition.z - 4.0f) {  // Limitar el movimiento de la cámara
+						 dollyZoom = false;  // Desactivar el dolly zoom después de alcanzar el límite
+						 camara.position.z = camara.initialPosition.z;
+						 camara.fFov = camara.initialFov;
+						 first = true;
+						 isometric = true;
+					 }
+				 }
+
+				
+			 }
+			 else if (isometric)
+			{
+				 camara.position = glm::vec3(0.f, 2.f, 5.f);
+				 camara.direction = camara.position + glm::vec3(0.f, 0.f, -1.f);
+				 camara.fFov = 45.f;
+					 first = false;
+				
+			 }
+			 else if (generalPlane)
+			 {
+				 camara.position = glm::vec3(0.f, 1.5f, 0.f);
+				 camara.direction = camara.position + glm::vec3(10.f, 0.5f, 1.f);
+				 camara.fFov = 60.f;
+			 }
+			 
+			
 			
 			//Limpiamos los buffers
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -653,10 +778,10 @@ void main() {
 			glm::mat4 scaleMatrix = glm::scale(glm::mat4(1.f), glm::vec3(0.5f));
 
 			// Definir la matriz de vista
-			glm::mat4 view = glm::lookAt(glm::vec3(0.0f, 1.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.f), glm::vec3(0.0f, 1.0f, 0.0f));
+			glm::mat4 view = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
 
 			// Definir la matriz proyeccion
-			glm::mat4 projection = glm::perspective(glm::radians(45.0f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
+			glm::mat4 projection = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
 
 			//Asignar valores iniciales al programa
 			glUniform2f(glGetUniformLocation(compiledPrograms[0], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -672,6 +797,8 @@ void main() {
 
 
 			// <<<<<<<<<<<<<<<<<<<<<<<<<<TROLL 1>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+
+			
 			glUseProgram(compiledPrograms[2]);
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, textureID);
@@ -683,10 +810,12 @@ void main() {
 			 scaleMatrix = glm::scale(glm::mat4(1.f), glm::vec3(0.5f));
 
 			// Definir la matriz de vista
-			view = glm::lookAt(glm::vec3(0.0f, 1.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.f), glm::vec3(0.0f, 1.0f, 0.0f));
+			 view = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
 
-			// Definir la matriz proyeccion
-			projection = glm::perspective(glm::radians(45.0f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
+			 // Definir la matriz proyeccion
+			 projection = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
+
+			 
 
 			//Asignar valores iniciales al programa
 			glUniform2f(glGetUniformLocation(compiledPrograms[2], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -713,10 +842,10 @@ void main() {
 			scaleMatrix = glm::scale(glm::mat4(1.f), glm::vec3(0.5f));
 
 			// Definir la matriz de vista
-			view = glm::lookAt(glm::vec3(0.0f, 1.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.f), glm::vec3(0.0f, 1.0f, 0.0f));
+			view = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
 
 			// Definir la matriz proyeccion
-			projection = glm::perspective(glm::radians(45.0f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
+			projection = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
 
 			//Asignar valores iniciales al programa
 			glUniform2f(glGetUniformLocation(compiledPrograms[3], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -744,10 +873,10 @@ void main() {
 			glm::mat4 scaleMatrix2 = glm::scale(glm::mat4(1.f), glm::vec3(0.5f));
 
 			// Definir la matriz de vista
-			glm::mat4 view2 = glm::lookAt(glm::vec3(0.0f, 1.0f, 5.0f), glm::vec3(0.0f, 1.0f, 0.f), glm::vec3(0.0f, 1.0f, 0.0f));
+			view = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
 
 			// Definir la matriz proyeccion
-			glm::mat4 projection2 = glm::perspective(glm::radians(45.0f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
+			projection = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
 
 			//Asignar valores iniciales al programa
 			glUniform2f(glGetUniformLocation(compiledPrograms[0], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
@@ -756,9 +885,9 @@ void main() {
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix2));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix2));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix2));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(view2));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(projection2));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(projection2));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(view));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
 			models[1].Render();
 
 
@@ -772,6 +901,11 @@ void main() {
 			 translationMatrix = glm::translate(glm::mat4(1.f), glm::vec3(0.f, 3.f, -5.f));
 			 rotationMatrix = glm::rotate(glm::mat4(1.0f), glm::radians(90.0f), glm::vec3(0.f, 0.f, 1.f));
 			scaleMatrix = glm::scale(glm::mat4(1.f), glm::vec3(1.f,2.f,0.5f));
+
+			view = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
+
+			// Definir la matriz proyeccion
+			projection = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
 			//Asignar valores iniciales al programa
 			glUniform2f(glGetUniformLocation(compiledPrograms[2], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
 
@@ -789,11 +923,13 @@ void main() {
 
 			// Definir matrices de transformación
 			glm::mat4 model = glm::mat4(1.0f);
-			model = glm::translate(model, glm::vec3(0.0f, -0.5f, 3.0f));
+			model = glm::translate(model, glm::vec3(0.0f, 1.5f, 3.0f));
 			model = glm::scale(model, glm::vec3(10.f,1.f,10.f));
 
-			 view = glm::lookAt(glm::vec3(0.0f, 0.0f, 3.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
-			 projection = glm::perspective(glm::radians(45.0f), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 100.0f);
+			view = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
+
+			// Definir la matriz proyeccion
+			projection = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
 
 			// Pasar matrices a los shaders
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[1], "model"), 1, GL_FALSE, glm::value_ptr(model));
