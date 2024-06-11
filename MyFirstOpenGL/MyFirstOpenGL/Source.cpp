@@ -509,16 +509,16 @@ void main() {
 		Camera camara;
 
 		//Compilar shaders
-		ShaderProgram myFirstProgram;
-		myFirstProgram.vertexShader = LoadVertexShader("MyFirstVertexShader.glsl");
-		myFirstProgram.geometryShader = LoadGeometryShader("MyFirstGeometryShader.glsl");
-		myFirstProgram.fragmentShader = LoadFragmentShader("MyFirstFragmentShader.glsl");
+		ShaderProgram Program;
+		Program.vertexShader = LoadVertexShader("VertexShader0.glsl");
+		Program.geometryShader = LoadGeometryShader("GeometryShader.glsl");
+		Program.fragmentShader = LoadFragmentShader("FragmentShader.glsl");
 
 		//Cargo Modelo
 		models.push_back(LoadOBJModel("Assets/Models/troll.obj"));
 
 		//Compìlar programa
-		compiledPrograms.push_back(CreateProgram(myFirstProgram));
+		compiledPrograms.push_back(CreateProgram(Program));
 
 		//Definimos canal de textura activo
 		glActiveTexture(GL_TEXTURE0);
@@ -692,16 +692,16 @@ void main() {
 		glBindVertexArray(0);
 
 		ShaderProgram WhiteProgram;
-		WhiteProgram.vertexShader = LoadVertexShader("MyFirstVertexShader.glsl");
-		WhiteProgram.geometryShader = LoadGeometryShader("MyFirstGeometryShader.glsl");
+		WhiteProgram.vertexShader = LoadVertexShader("VertexShader0.glsl");
+		WhiteProgram.geometryShader = LoadGeometryShader("GeometryShader.glsl");
 		WhiteProgram.fragmentShader = LoadFragmentShader("FragmentShaderBlanco.glsl");
 
 		//Compìlar programa
 		compiledPrograms.push_back(CreateProgram(WhiteProgram));
 
 		ShaderProgram ColorProgram;
-		ColorProgram.vertexShader = LoadVertexShader("MyFirstVertexShader.glsl");
-		ColorProgram.geometryShader = LoadGeometryShader("MyFirstGeometryShader.glsl");
+		ColorProgram.vertexShader = LoadVertexShader("VertexShader0.glsl");
+		ColorProgram.geometryShader = LoadGeometryShader("GeometryShader.glsl");
 		ColorProgram.fragmentShader = LoadFragmentShader("FragmentShaderColor.glsl");
 
 		//Compìlar programa
