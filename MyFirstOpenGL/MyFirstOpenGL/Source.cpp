@@ -29,7 +29,7 @@ struct GameObject
 
 struct Camera 
 {
-	glm::vec3 position = glm::vec3(0.f,2.f,5.f);
+	glm::vec3 position = glm::vec3(0.5f, 0.5f, -1.f);
 	glm::vec3 direction = position + glm::vec3(0.f,0.f,-1.f);
 	glm::vec3 localVectorUp = glm::vec3(0.f,1.f,0.f);
 	glm::vec3 initialPosition = glm::vec3(0.f, 2.f, 5.f);
@@ -40,6 +40,11 @@ struct Camera
 	float fNear = 0.1f;
 	float fFar = 10.f;
 	float aspectRatio;
+	glm::mat4 rotationMat;
+	glm::mat4 projection;
+	glm::mat4 modelView;
+	glm::mat4 MVP;
+	float angle = 0.f;
 };
 
 struct ShaderProgram {
@@ -723,44 +728,49 @@ void main() {
 			 else if (dollyZoom) 
 			 {
 				 
-				 if (first) 
-				 {
-					 camara.position = glm::vec3(0.f, 2.f, 5.f);
-					 camara.direction = camara.position + glm::vec3(0.f, 0.f, -1.f);
-					 camara.fFov = 45.f;
-					 first = false;
-				 }
-				 else 
-				 {
-					 camara.initialPosition = glm::vec3(0.f, 2.f, 8.f);
-					 camara.position.z -= camara.dollyZoomSpeed;
-					 camara.fFov += camara.fovSpeed;
-					 if (camara.position.z < camara.initialPosition.z - 4.0f) {  // Limitar el movimiento de la cámara
-						 dollyZoom = false;  // Desactivar el dolly zoom después de alcanzar el límite
-						 camara.position.z = camara.initialPosition.z;
-						 camara.fFov = camara.initialFov;
-						 first = true;
-						 isometric = true;
-					 }
-				 }
-
+				 //if (first) 
+				 //{
+					// camara.position = glm::vec3(0.f, 2.f, 5.f);
+					// camara.direction = camara.position + glm::vec3(0.f, 0.f, -1.f);
+					// camara.fFov = 45.f;
+					// first = false;
+				 //}
+				 //else 
+				 //{
+					// camara.initialPosition = glm::vec3(0.f, 2.f, 8.f);
+					// camara.position.z -= camara.dollyZoomSpeed;
+					// camara.fFov += camara.fovSpeed;
+					// if (camara.position.z < camara.initialPosition.z - 4.0f) {  // Limitar el movimiento de la cámara
+					//	 dollyZoom = false;  // Desactivar el dolly zoom después de alcanzar el límite
+					//	 camara.position.z = camara.initialPosition.z;
+					//	 camara.fFov = camara.initialFov;
+					//	 first = true;
+					//	 isometric = true;
+					// }
+				 //}
+				 camara.fFov = 60.f;
+				 camara.position = glm::vec3(0.5f, 0.5f, 1.f);
+				 camara.angle -= 1 * 0.05f;
+				 camara.rotationMat = glm::rotate(glm::mat4(1.0f), glm::radians(camara.angle), glm::vec3(0.f, 1.f, 0.f));
 				
 			 }
 			 else if (isometric)
 			{
-				 camara.position = glm::vec3(0.f, 2.f, 5.f);
-				 camara.direction = camara.position + glm::vec3(0.f, 0.f, -1.f);
-				 camara.fFov = 45.f;
-					 first = false;
+				 camara.fFov = 20.f;
+				 camara.position = glm::vec3(0.f, 0.9f, 0.09f);
+				 camara.rotationMat = glm::rotate(glm::mat4(1.0f), glm::radians(90.f), glm::vec3(0.f, 1.f, 0.f));
 				
 			 }
 			 else if (generalPlane)
 			 {
-				 camara.position = glm::vec3(0.f, 1.5f, 0.f);
-				 camara.direction = camara.position + glm::vec3(10.f, 0.5f, 1.f);
 				 camara.fFov = 60.f;
+				 camara.position = glm::vec3(0.f, 1.f, -0.9f);
+				 camara.rotationMat = glm::rotate(glm::mat4(1.0f), glm::radians(95.f), glm::vec3(0.f, 1.f, 0.f));
 			 }
-			 
+			 camara.modelView = glm::lookAt(camara.position, glm::vec3(0.f, 1.f, 0.f), camara.localVectorUp);
+			 camara.modelView *= camara.rotationMat;
+			 // Definir la matriz proyeccion
+			 camara.projection = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
 			
 			
 			//Limpiamos los buffers
@@ -791,8 +801,8 @@ void main() {
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(view));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(camara.modelView));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(camara.projection));
 			models[0].Render();
 
 
@@ -825,8 +835,8 @@ void main() {
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "view"), 1, GL_FALSE, glm::value_ptr(view));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "view"), 1, GL_FALSE, glm::value_ptr(camara.modelView));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "projection"), 1, GL_FALSE, glm::value_ptr(camara.projection));
 			models[0].Render();
 
 
@@ -855,8 +865,8 @@ void main() {
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[3], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[3], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[3], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[3], "view"), 1, GL_FALSE, glm::value_ptr(view));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[3], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[3], "view"), 1, GL_FALSE, glm::value_ptr(camara.modelView));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[3], "projection"), 1, GL_FALSE, glm::value_ptr(camara.projection));
 			models[0].Render();
 
 
@@ -885,9 +895,9 @@ void main() {
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix2));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix2));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix2));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(view));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(camara.modelView));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(camara.projection));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(camara.projection));
 			models[1].Render();
 
 
@@ -913,9 +923,9 @@ void main() {
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "view"), 1, GL_FALSE, glm::value_ptr(view));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "view"), 1, GL_FALSE, glm::value_ptr(camara.modelView));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "projection"), 1, GL_FALSE, glm::value_ptr(camara.projection));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "projection"), 1, GL_FALSE, glm::value_ptr(camara.projection));
 			models[1].Render();
 
 			////////////////////////////////////////////  CUBO  ////////////////////////////////////////////			
@@ -933,8 +943,8 @@ void main() {
 
 			// Pasar matrices a los shaders
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[1], "model"), 1, GL_FALSE, glm::value_ptr(model));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[1], "view"), 1, GL_FALSE, glm::value_ptr(view));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[1], "projection"), 1, GL_FALSE, glm::value_ptr(projection));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[1], "view"), 1, GL_FALSE, glm::value_ptr(camara.modelView));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[1], "projection"), 1, GL_FALSE, glm::value_ptr(camara.projection));
 
 			// Dibujar el cubo
 			glBindVertexArray(vaoCubo);
