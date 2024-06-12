@@ -143,6 +143,19 @@ void keyEvents(GLFWwindow* window, int key, int scancode, int action, int mods)
 }
 
 
+float getCurrentTime() {
+	float time = glfwGetTime();
+	return time;
+}
+
+float getDeltaTime() {
+	static float lastFrameTime = 0.f;
+	float currentFrameTime = getCurrentTime(); // Supongamos que esta función te da el tiempo actual en segundos.
+	float deltaTime = currentFrameTime - lastFrameTime;
+	lastFrameTime = currentFrameTime;
+	return deltaTime;
+}
+
 //Funcion que leera un .obj y devolvera un modelo para poder ser renderizado
 Model LoadOBJModel(const std::string& filePath) {
 
@@ -718,56 +731,62 @@ void main() {
 			//Pulleamos los eventos (botones, teclas, mouse...)
 			glfwPollEvents();
 			glfwSetKeyCallback(window, keyEvents);
+			float lastFrameTime = glfwGetTime();
+			float currentFrameTime = glfwGetTime();
+			float dt = currentFrameTime - lastFrameTime;
+		
 			
 			 if (detailPlane) 
 			{
 				 camara.position = glm::vec3(0.f, 1.5f, 0.f);
 				 camara.direction = camara.position + glm::vec3(-1.5f, 0.65f, 0.f);
+				 camara.rotationMat = glm::rotate(glm::mat4(1.0f), glm::radians(0.f), glm::vec3(0.f, 1.f, 0.f));
 				 camara.fFov = 5.f;
 			}
 			 else if (dollyZoom) 
 			 {
 				 
-				 //if (first) 
-				 //{
-					// camara.position = glm::vec3(0.f, 2.f, 5.f);
-					// camara.direction = camara.position + glm::vec3(0.f, 0.f, -1.f);
-					// camara.fFov = 45.f;
-					// first = false;
-				 //}
-				 //else 
-				 //{
-					// camara.initialPosition = glm::vec3(0.f, 2.f, 8.f);
-					// camara.position.z -= camara.dollyZoomSpeed;
-					// camara.fFov += camara.fovSpeed;
-					// if (camara.position.z < camara.initialPosition.z - 4.0f) {  // Limitar el movimiento de la cámara
-					//	 dollyZoom = false;  // Desactivar el dolly zoom después de alcanzar el límite
-					//	 camara.position.z = camara.initialPosition.z;
-					//	 camara.fFov = camara.initialFov;
-					//	 first = true;
-					//	 isometric = true;
-					// }
-				 //}
-				 camara.fFov = 60.f;
-				 camara.position = glm::vec3(0.5f, 0.5f, 1.f);
-				 camara.angle -= 1 * 0.05f;
-				 camara.rotationMat = glm::rotate(glm::mat4(1.0f), glm::radians(camara.angle), glm::vec3(0.f, 1.f, 0.f));
+				 if (first) 
+				 {
+					 camara.position = glm::vec3(0.f, 2.f, 1.f);
+					 camara.direction = camara.position + glm::vec3(0.f, 0.f, -1.f);
+					 camara.rotationMat = glm::rotate(glm::mat4(1.0f), glm::radians(0.f), glm::vec3(0.f, 1.f, 0.f));
+					 camara.fFov = 45.f;
+					 first = false;
+				 }
+				 else 
+				 {
+
+					 camara.initialPosition = glm::vec3(0.f, 0.f, -1.f);
+					 camara.position.z += dt + camara.dollyZoomSpeed;
+					 camara.fFov -= camara.fovSpeed;
+					 if (camara.fFov <= 20.0f) {  // Limitar el movimiento de la cámara
+						 dollyZoom = false;  // Desactivar el dolly zoom después de alcanzar el límite
+						 first = true;
+						 isometric = true;
+					 }
+				 }
+
 				
 			 }
 			 else if (isometric)
 			{
-				 camara.fFov = 20.f;
-				 camara.position = glm::vec3(0.f, 0.9f, 0.09f);
-				 camara.rotationMat = glm::rotate(glm::mat4(1.0f), glm::radians(90.f), glm::vec3(0.f, 1.f, 0.f));
+
+				 camara.fFov = 60.f;
+				 camara.position = glm::vec3(0.f, 3.f, 3.5f);
+				 camara.angle -= 1 * 0.05f;
+				 camara.rotationMat = glm::rotate(glm::mat4(1.0f), glm::radians(camara.angle), glm::vec3(0.f, 1.f, 0.f));
+				 camara.direction = glm::vec3(0.f,1.f,0.f);
 				
 			 }
 			 else if (generalPlane)
 			 {
 				 camara.fFov = 60.f;
-				 camara.position = glm::vec3(0.f, 1.f, -0.9f);
-				 camara.rotationMat = glm::rotate(glm::mat4(1.0f), glm::radians(95.f), glm::vec3(0.f, 1.f, 0.f));
+				 camara.position = glm::vec3(0.f, 1.5f, 0.5f);
+				 camara.direction = camara.position + glm::vec3(0.f, 0.f, -1.f);
+				 camara.rotationMat = glm::rotate(glm::mat4(1.0f), glm::radians(0.f), glm::vec3(0.f, 1.f, 0.f));
 			 }
-			 camara.modelView = glm::lookAt(camara.position, glm::vec3(0.f, 1.f, 0.f), camara.localVectorUp);
+			 camara.modelView = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
 			 camara.modelView *= camara.rotationMat;
 			 // Definir la matriz proyeccion
 			 camara.projection = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
