@@ -32,10 +32,8 @@ struct Camera
 	glm::vec3 position = glm::vec3(0.5f, 0.5f, -1.f);
 	glm::vec3 direction = position + glm::vec3(0.f,0.f,-1.f);
 	glm::vec3 localVectorUp = glm::vec3(0.f,1.f,0.f);
-	glm::vec3 initialPosition = glm::vec3(0.f, 2.f, 5.f);
 	float dollyZoomSpeed = 0.01f;
 	float fovSpeed = 0.1f;
-	float initialFov = 45.f;
 	float fFov = 45.f;
 	float fNear = 0.1f;
 	float fFar = 10.f;
@@ -140,20 +138,6 @@ void keyEvents(GLFWwindow* window, int key, int scancode, int action, int mods)
 	}
 
 
-}
-
-
-float getCurrentTime() {
-	float time = glfwGetTime();
-	return time;
-}
-
-float getDeltaTime() {
-	static float lastFrameTime = 0.f;
-	float currentFrameTime = getCurrentTime(); // Supongamos que esta función te da el tiempo actual en segundos.
-	float deltaTime = currentFrameTime - lastFrameTime;
-	lastFrameTime = currentFrameTime;
-	return deltaTime;
 }
 
 //Funcion que leera un .obj y devolvera un modelo para poder ser renderizado
@@ -709,21 +693,6 @@ void main() {
 		//Desvinculamos VAO
 		glBindVertexArray(0);
 
-		ShaderProgram WhiteProgram;
-		WhiteProgram.vertexShader = LoadVertexShader("VertexShader0.glsl");
-		WhiteProgram.geometryShader = LoadGeometryShader("GeometryShader.glsl");
-		WhiteProgram.fragmentShader = LoadFragmentShader("FragmentShaderBlanco.glsl");
-
-		//Compìlar programa
-		compiledPrograms.push_back(CreateProgram(WhiteProgram));
-
-		ShaderProgram ColorProgram;
-		ColorProgram.vertexShader = LoadVertexShader("VertexShader0.glsl");
-		ColorProgram.geometryShader = LoadGeometryShader("GeometryShader.glsl");
-		ColorProgram.fragmentShader = LoadFragmentShader("FragmentShaderColor.glsl");
-
-		//Compìlar programa
-		compiledPrograms.push_back(CreateProgram(ColorProgram));
 
 		//Generamos el game loop
 		while (!glfwWindowShouldClose(window)) {
@@ -731,6 +700,8 @@ void main() {
 			//Pulleamos los eventos (botones, teclas, mouse...)
 			glfwPollEvents();
 			glfwSetKeyCallback(window, keyEvents);
+
+			//Calculamos el delta time
 			float lastFrameTime = glfwGetTime();
 			float currentFrameTime = glfwGetTime();
 			float dt = currentFrameTime - lastFrameTime;
@@ -738,6 +709,7 @@ void main() {
 			
 			 if (detailPlane) 
 			{
+				 // Inicializar valores de la camara para ejecutar el plano detalle
 				 camara.position = glm::vec3(0.f, 1.5f, 0.f);
 				 camara.direction = camara.position + glm::vec3(-1.5f, 0.65f, 0.f);
 				 camara.rotationMat = glm::rotate(glm::mat4(1.0f), glm::radians(0.f), glm::vec3(0.f, 1.f, 0.f));
@@ -748,6 +720,7 @@ void main() {
 				 
 				 if (first) 
 				 {
+					 // Inicializar valores de la camara para ejecutar el dollyZoom
 					 camara.position = glm::vec3(0.f, 2.f, 1.f);
 					 camara.direction = camara.position + glm::vec3(0.f, 0.f, -1.f);
 					 camara.rotationMat = glm::rotate(glm::mat4(1.0f), glm::radians(0.f), glm::vec3(0.f, 1.f, 0.f));
@@ -756,14 +729,12 @@ void main() {
 				 }
 				 else 
 				 {
-
-					 camara.initialPosition = glm::vec3(0.f, 0.f, -1.f);
 					 camara.position.z += dt + camara.dollyZoomSpeed;
 					 camara.fFov -= camara.fovSpeed;
-					 if (camara.fFov <= 20.0f) {  // Limitar el movimiento de la cámara
+					 if (camara.fFov <= 20.0f) {  // Limitar el dolly zoom a traves del fov
 						 dollyZoom = false;  // Desactivar el dolly zoom después de alcanzar el límite
 						 first = true;
-						 isometric = true;
+						 isometric = true; // Desactivar la camara que rota
 					 }
 				 }
 
@@ -771,7 +742,7 @@ void main() {
 			 }
 			 else if (isometric)
 			{
-
+				 // Inicializar valores de la camara para ejecutar el plano isometrico con rotación
 				 camara.fFov = 60.f;
 				 camara.position = glm::vec3(0.f, 3.f, 3.5f);
 				 camara.angle -= 1 * 0.05f;
@@ -781,11 +752,13 @@ void main() {
 			 }
 			 else if (generalPlane)
 			 {
+				 // Inicializar valores de la camara para ejecutar el plano general
 				 camara.fFov = 60.f;
 				 camara.position = glm::vec3(0.f, 1.5f, 0.5f);
 				 camara.direction = camara.position + glm::vec3(0.f, 0.f, -1.f);
 				 camara.rotationMat = glm::rotate(glm::mat4(1.0f), glm::radians(0.f), glm::vec3(0.f, 1.f, 0.f));
 			 }
+			 // Definir la matriz de vista
 			 camara.modelView = glm::lookAt(camara.position, camara.direction, camara.localVectorUp);
 			 camara.modelView *= camara.rotationMat;
 			 // Definir la matriz proyeccion
@@ -822,16 +795,17 @@ void main() {
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(camara.modelView));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(camara.projection));
+			glUniform4fv(glGetUniformLocation(compiledPrograms[0], "color"), 1, glm::value_ptr(glm::vec4(0.f, 0.f, 0.f,1.f)));
 			models[0].Render();
 
 
 			// <<<<<<<<<<<<<<<<<<<<<<<<<<TROLL 1>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
 			
-			glUseProgram(compiledPrograms[2]);
+			glUseProgram(compiledPrograms[0]);
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, textureID);
-			glUniform1i(glGetUniformLocation(compiledPrograms[2], "textureSampler"), 0);
+			glUniform1i(glGetUniformLocation(compiledPrograms[0], "textureSampler"), 0);
 
 			//Definir la matriz de traslacion, rotacion y escalado
 			 translationMatrix = glm::translate(glm::mat4(1.f), glm::vec3(1.5f,1.f,0.f));
@@ -847,23 +821,24 @@ void main() {
 			 
 
 			//Asignar valores iniciales al programa
-			glUniform2f(glGetUniformLocation(compiledPrograms[2], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
+			glUniform2f(glGetUniformLocation(compiledPrograms[0], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
 
 
 			// Pasar las matrices
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "view"), 1, GL_FALSE, glm::value_ptr(camara.modelView));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "projection"), 1, GL_FALSE, glm::value_ptr(camara.projection));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(camara.modelView));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(camara.projection));
+			glUniform4fv(glGetUniformLocation(compiledPrograms[0], "color"), 1, glm::value_ptr(glm::vec4(0.5f, 0.f, 0.f,1.f)));
 			models[0].Render();
 
 
 			// <<<<<<<<<<<<<<<<<<<<<<<<<<TROLL 2>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-			glUseProgram(compiledPrograms[3]);
+			glUseProgram(compiledPrograms[0]);
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, textureID);
-			glUniform1i(glGetUniformLocation(compiledPrograms[3], "textureSampler"), 0);
+			glUniform1i(glGetUniformLocation(compiledPrograms[0], "textureSampler"), 0);
 
 			//Definir la matriz de traslacion, rotacion y escalado
 			translationMatrix = glm::translate(glm::mat4(1.f), glm::vec3(-1.5f, 1.f, 0.f));
@@ -877,15 +852,16 @@ void main() {
 			projection = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
 
 			//Asignar valores iniciales al programa
-			glUniform2f(glGetUniformLocation(compiledPrograms[3], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
+			glUniform2f(glGetUniformLocation(compiledPrograms[0], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
 
 
 			// Pasar las matrices
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[3], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[3], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[3], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[3], "view"), 1, GL_FALSE, glm::value_ptr(camara.modelView));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[3], "projection"), 1, GL_FALSE, glm::value_ptr(camara.projection));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(camara.modelView));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(camara.projection));
+			glUniform4fv(glGetUniformLocation(compiledPrograms[0], "color"), 1, glm::value_ptr(glm::vec4(0.f, 0.5f, 0.f, 1.f)));
 			models[0].Render();
 
 
@@ -916,12 +892,12 @@ void main() {
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix2));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(camara.modelView));
 			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(camara.projection));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(camara.projection));
+			glUniform4fv(glGetUniformLocation(compiledPrograms[0], "color"), 1, glm::value_ptr(glm::vec4(0.f, 0.f, 0.f, 1.f)));
 			models[1].Render();
 
 
 			//// <<<<<<<<<<<<<<<<<<<<<<<<<<     NUBE   >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-			glUseProgram(compiledPrograms[2]);
+			glUseProgram(compiledPrograms[0]);
 			glActiveTexture(GL_TEXTURE1);
 			glBindTexture(GL_TEXTURE_2D, textureID2);
 			glUniform1i(glGetUniformLocation(compiledPrograms[0], "textureSampler"), 1);
@@ -936,15 +912,15 @@ void main() {
 			// Definir la matriz proyeccion
 			projection = glm::perspective(glm::radians(camara.fFov), (float)WINDOW_WIDTH / (float)WINDOW_HEIGHT, camara.fNear, camara.fFar);
 			//Asignar valores iniciales al programa
-			glUniform2f(glGetUniformLocation(compiledPrograms[2], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
+			glUniform2f(glGetUniformLocation(compiledPrograms[0], "windowSize"), WINDOW_WIDTH, WINDOW_HEIGHT);
 
 			// Pasar las matrices
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "view"), 1, GL_FALSE, glm::value_ptr(camara.modelView));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "projection"), 1, GL_FALSE, glm::value_ptr(camara.projection));
-			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[2], "projection"), 1, GL_FALSE, glm::value_ptr(camara.projection));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "translationMatrix"), 1, GL_FALSE, glm::value_ptr(translationMatrix));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "rotationMatrix"), 1, GL_FALSE, glm::value_ptr(rotationMatrix));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "scaleMatrix"), 1, GL_FALSE, glm::value_ptr(scaleMatrix));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "view"), 1, GL_FALSE, glm::value_ptr(camara.modelView));
+			glUniformMatrix4fv(glGetUniformLocation(compiledPrograms[0], "projection"), 1, GL_FALSE, glm::value_ptr(camara.projection));
+			glUniform4fv(glGetUniformLocation(compiledPrograms[0], "color"), 1, glm::value_ptr(glm::vec4(0.5f, 0.5f, 0.5f, 1.f)));
 			models[1].Render();
 
 			////////////////////////////////////////////  CUBO  ////////////////////////////////////////////			

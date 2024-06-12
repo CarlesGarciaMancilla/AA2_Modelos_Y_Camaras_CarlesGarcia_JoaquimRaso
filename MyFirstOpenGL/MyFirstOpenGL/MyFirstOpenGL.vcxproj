@@ -24,8 +24,6 @@
     <ClCompile Include="Stb.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <None Include="FragmentShaderBlanco.glsl" />
-    <None Include="FragmentShaderColor.glsl" />
     <None Include="FragmentShaderCube.glsl" />
     <None Include="GeometryShaderCube.glsl" />
     <None Include="FragmentShader.glsl" />

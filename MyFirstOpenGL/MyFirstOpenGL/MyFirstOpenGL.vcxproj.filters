@@ -56,12 +56,6 @@
     <None Include="VertexShaderCube.glsl">
       <Filter>Shaders\Vertex Shader</Filter>
     </None>
-    <None Include="FragmentShaderBlanco.glsl">
-      <Filter>Shaders\Fragment Shader</Filter>
-    </None>
-    <None Include="FragmentShaderColor.glsl">
-      <Filter>Shaders\Fragment Shader</Filter>
-    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Model.h">
